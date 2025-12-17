@@ -73,17 +73,6 @@ def spin(bet_amount):
     nums = [[num1, num2, num3], [num4, num5, num6], [num7, num8, num9]]
     winnings = 0
     balance = int(balance) - int(bet_amount)
-    """
-    This is used to print the results to the terminal
-    It is not necessary and was clogging up my terminal so it gets commented out
-
-    for i in range(0, 3):
-        print()
-        for j in range(0, 3):
-            print(nums[i][j], end="")
-            if j < 2:
-                print(' | ', end="")
-    """
     # check if there are three matching in a row
     if num1 == num2 and num2 == num3:
         match num1:
@@ -100,6 +89,7 @@ def spin(bet_amount):
                 factor = 10
         # add to the total winnings of that spin
         winnings = winnings + (int(bet_amount) * factor)
+    # the previous comments apply for all the code until line 184
     if num1 == num4 and num4 == num7:
         match num1:
             case 'A':
@@ -192,35 +182,6 @@ def spin(bet_amount):
                 factor = 10
         winnings = winnings + (int(bet_amount) * factor)
     balance = balance + winnings
-    # These are also not necessary for the pygame version of the program
-    # print('Your balance is now $' + str(balance))
-    # play()
-"""
-This isn't necessary since I used pygame for the UI
-It could come back later so I'm not deleting it
-
-def bet():
-    global balance
-    global bet_amount
-    bet_amount = input('How much do you want to bet on each spin? $')
-    if bet_amount > balance:
-        print('That bet is greater than your balance. Please bet again')
-        start()
-    play()
-
-def play():
-    play = input('Press enter to play the game or press \'Q\' to quit')
-    if play == 'q':
-        print('Thanks for playing! You finished with $' + str(balance))
-    else:
-        spin()
-
-
-def start():
-    global balance
-    balance = input('Welcome to Spauldo Slots! Your balance is ' + str(balance) + '. How much would you like to add? $')
-    bet()
-"""
 pygame.init()
 pygame.mixer.init()
 ding = pygame.mixer.Sound("short_bing.wav")
@@ -276,7 +237,7 @@ while running:
         num5_color = (242, 219, 13)
         num7_color = (242, 219, 13)
     # when enter is pressed, there is a new spin and all numbers turn to black
-    if pygame.key.get_just_pressed()[pygame.K_RETURN]:
+    if pygame.key.get_pressed()[pygame.K_RETURN]:
         num1_color = (0, 0, 0)
         num2_color = (0, 0, 0)
         num3_color = (0, 0, 0)
