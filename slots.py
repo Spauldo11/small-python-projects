@@ -17,6 +17,9 @@ def display():
     # displays your current balance
     balance_text = mini_font.render("Balance: ", True, (0, 0, 0))
     money = mini_font.render(str(balance), True, (0, 0, 0))
+    # displays current bet amount
+    bet_amount_txt = mini_font.render("Bet amount: ", True, (0, 0, 0))
+    bet_amount_num = mini_font.render(str(bet_amount), True, (0, 0, 0))
     # all of the numbers on the grid displayed with their respective color
     num_one = font.render(num1, True, num1_color)
     num_two = font.render(num2, True, num2_color)
@@ -28,6 +31,8 @@ def display():
     num_eight = font.render(num8, True, num8_color)
     num_nine = font.render(num9, True, num9_color)
     # render everything on screen
+    screen.blit(bet_amount_txt, (810, 10))
+    screen.blit(bet_amount_num, (1000, 10))
     screen.blit(balance_text, (10, 10))
     screen.blit(money, (140, 10))
     screen.blit(num_one, (90, 55))
@@ -203,6 +208,8 @@ num8_color = (0, 0, 0)
 num9_color = (0, 0, 0)
 
 while running:
+    if bet_amount > balance:
+        bet_amount = balance
     # change color of matching numbers if there are any at the start
     if num1 == num2 and num2 == num3:
         num1_color = (242, 219, 13)
@@ -237,7 +244,7 @@ while running:
         num5_color = (242, 219, 13)
         num7_color = (242, 219, 13)
     # when enter is pressed, there is a new spin and all numbers turn to black
-    if pygame.key.get_pressed()[pygame.K_RETURN]:
+    if pygame.key.get_pressed()[pygame.K_RETURN] or pygame.key.get_pressed()[pygame.K_SPACE]:
         num1_color = (0, 0, 0)
         num2_color = (0, 0, 0)
         num3_color = (0, 0, 0)
@@ -253,7 +260,13 @@ while running:
             spin(0)
             display()
         end_sound.play()
-        spin(10)
+        spin(bet_amount)
+    if pygame.key.get_pressed()[pygame.K_UP]:
+        if bet_amount < balance:
+            bet_amount += 1
+    if pygame.key.get_pressed()[pygame.K_DOWN]:
+        if bet_amount > 0:
+            bet_amount -= 1
         # change color of matching numbers if there are any after each new spin
         if num1 == num2 and num2 == num3:
             num1_color = (242, 219, 13)
