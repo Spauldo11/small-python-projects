@@ -44,13 +44,17 @@ class Pocket:
         # Determines if a straight is possible given these two cards
         straight_possible = int(0 < difference <= 4)
         # Calculate total strength with aces being low
-        total_strength = joint_val*5 + suited*20 + pair*50 - (difference*2 * straight_possible) + straight_possible*20
+        total_strength = joint_val*5 + suited*20 + pair*90 - (difference*2 * straight_possible) + straight_possible*20
         # Calculate total strength with aces being high
-        alter_strength = alter_joint_val*5 + suited*20 + alter_pair*50 - (alter_difference*2 * straight_possible) + straight_possible*20
+        alter_strength = alter_joint_val*5 + suited*20 + alter_pair*90 - (alter_difference*2 * straight_possible) + straight_possible*20
         # Return whichever strength is stronger
         if total_strength >= alter_strength:
             return total_strength
         else:
+            if card1.val == 1:
+                self.cards[0] = alter_card1
+            if card2.val == 1:
+                self.cards[1] = alter_card2
             return alter_strength
 
 class Middle:
@@ -136,7 +140,7 @@ class Round:#
             new_card = self.deck.deal_card()
             self.middle.add_card(new_card)
             all_cards.append(new_card)
-            print(f"The turn is a {self.middle.cards[0].val} of {self.middle.cards[0].suit}")
+            print(f"The river is a {self.middle.cards[0].val} of {self.middle.cards[0].suit}")
 
 pairs = []
 triples = []
@@ -145,16 +149,18 @@ straights = []
 straight_flushes = []
 quartets = []
 
-# TODO create sorting algorithm for card object. Sort by value
 def sort_all_cards(arr):
-    pass
+    if not arr:
+        return arr
+    arr.sort(key=lambda card: card.val)
+    return arr
 
 def binary_search(start, end, arr, target):
     while start <= end:
         mid = start + (end - start) // 2
-        if arr[mid] == target:
+        if arr[mid].val == target:
             return arr[mid]
-        elif arr[mid] > target:
+        elif arr[mid].val > target:
             end = mid - 1
         else:
             start = mid + 1
@@ -182,7 +188,7 @@ def check_straight(arr):
         for i in range(index+1, len(arr)):
             if arr[i-1].val == 1:
                 arr[i-1].val = 14
-                arr.sort()
+                sort_all_cards(arr)
                 break
             if arr[i].val - 1 == arr[i-1].val:
                 count+=1
@@ -230,9 +236,9 @@ def check_pairs(arr):
         target = arr[i].val
         low = i+1
         high = len(arr)-1
-        if not binary_search(low, high, arr, target) == 1:
+        if (not binary_search(low, high, arr, target) == 1) and binary_search(low, high, arr, target):
             pairs.append(binary_search(low, high, arr, target))
-        else:
+        elif binary_search(low, high, arr, target):
             binary_search(low, high, arr, target).val = 14
             pairs.append(binary_search(low, high, arr, target))
     return len(pairs)
@@ -246,6 +252,11 @@ flop.deal_flop()
 turn.deal_turn()
 river.deal_river()
 
+"""
+for i in range(len(all_cards)):
+    print(all_cards[i].val, all_cards[i].suit)
+"""
+sort_all_cards(all_cards)
 four_of_kind = check_fours(all_cards)
 straight = check_straight(all_cards)
 flush = check_flush(all_cards)
