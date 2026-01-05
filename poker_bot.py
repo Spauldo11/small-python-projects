@@ -243,6 +243,7 @@ def check_pairs(arr):
             pairs.append(binary_search(low, high, arr, target))
     return len(pairs)
 
+
 round = Round()
 flop = round.Flop()
 turn = round.Turn()
@@ -252,10 +253,6 @@ flop.deal_flop()
 turn.deal_turn()
 river.deal_river()
 
-"""
-for i in range(len(all_cards)):
-    print(all_cards[i].val, all_cards[i].suit)
-"""
 sort_all_cards(all_cards)
 four_of_kind = check_fours(all_cards)
 straight = check_straight(all_cards)
