@@ -1,8 +1,49 @@
 import random
 buy_in = 20 # placeholder
+total_money = 4000
 num_people = 4
 all_cards = []
+pairs = []
+triples = []
+flushes = []
+straights = []
+straight_flushes = []
+quartets = []
 
+def turn_to_str(num):
+    match num:
+        case 14:
+            return "Ace"
+        case 1:
+            return "Ace"
+        case 13:
+            return "King"
+        case 12:
+            return "Queen"
+        case 11:
+            return "Jack"
+        case _:
+            return num
+# Define all these functions as empty at the start of the program to use before I fully define them
+def sort_all_cards():
+    pass
+def binary_search():
+    pass
+
+def check_fours():
+    pass
+
+def check_straight():
+    pass
+
+def check_flush():
+    pass
+
+def check_triple():
+    pass
+
+def check_pairs():
+    pass
 class Card:
     def __init__(self, suit, val):
         self.suit = suit
@@ -19,8 +60,8 @@ class Pocket:
         card1 = self.cards[0]
         card2 = self.cards[1]
         # Make the alternate values bad initially so the alternate strength won't get selected if there are no aces
-        alter_card1 = Card(card1.suit, 0)
-        alter_card2 = Card(card2.suit, 0)
+        alter_card1 = Card(card1.suit, card1.val)
+        alter_card2 = Card(card2.suit, card1.val)
         alter_difference = 10000
         alter_joint_val = 0
         alter_pair = 0
@@ -89,16 +130,60 @@ class Round:#
         self.all_cards = []
         self.current_bet = buy_in # To play a round, you must at least bet the buy in
         self.pot = buy_in * num_people
+        self.total_money = total_money-buy_in
     def raise_bet(self, amount):
+        if amount > self.total_money:
+            amount = self.total_money
         self.current_bet += amount
+        self.total_money -= amount
         self.pot += amount
+    def calc_strength(self):
+        pairs = []
+        triples = []
+        flushes = []
+        straights = []
+        straight_flushes = []
+        quartets = []
+
+        sort_all_cards(all_cards)
+        four_of_kind = check_fours(all_cards)
+        straight = check_straight(all_cards)
+        flush = check_flush(all_cards)
+        three_of_kind = check_triple(all_cards)
+        doubles = check_pairs(all_cards)
+
+        if four_of_kind > 0:
+            self.raise_bet(self.current_bet*4)
+        elif straight > 0:
+            for i in range(1, 5):
+                straights.append(straights[straight-1]+i)
+            straight_flush = check_flush(straights)
+            if straight_flush > 0:
+                self.raise_bet(self.current_bet*4)
+                if straights[straight-1] == 10:
+                    self.raise_bet(total_money)
+            else:
+                self.raise_bet(self.current_bet*3)
+        elif flush > 0:
+            self.raise_bet(self.current_bet*3)
+        elif three_of_kind > 0:
+            self.raise_bet(self.current_bet*3)
+        elif doubles > 0 and doubles>0:
+            if doubles > 1:
+                self.raise_bet(self.current_bet*2)
+            else:
+                self.raise_bet(self.current_bet*0.5)
+        else:
+            # Including a random chance at a bluff
+            if random.randint(0,101) > 75:
+                self.raise_bet(self.current_bet*0.5)
     def deal(self):
         for i in range(2):
             new_card = self.deck.deal_card()
             self.hand.add_card(new_card)
             all_cards.append(new_card)
         strength = self.hand.calc_strength()
-        print(f"Hand is {self.hand.cards[0].val} of {self.hand.cards[0].suit} and {self.hand.cards[1].val} of {self.hand.cards[1].suit}")
+        print(f"Hand is {turn_to_str(self.hand.cards[0].val)} of {self.hand.cards[0].suit} and {turn_to_str(self.hand.cards[1].val)} of {self.hand.cards[1].suit}")
         print(f"Hand strength is {str(strength)} out of 210")
         if strength > 115:
             self.raise_bet(self.current_bet)
@@ -117,7 +202,7 @@ class Round:#
                 new_card = self.deck.deal_card()
                 self.middle.add_card(new_card)
                 all_cards.append(new_card)
-            print(f"The flop is a {self.middle.cards[0].val} of {self.middle.cards[0].suit}, a {self.middle.cards[1].val} of {self.middle.cards[1].suit}, and a {self.middle.cards[2].val} of {self.middle.cards[2].suit}")
+            print(f"The flop is a {turn_to_str(self.middle.cards[0].val)} of {self.middle.cards[0].suit}, a {turn_to_str(self.middle.cards[1].val)} of {self.middle.cards[1].suit}, and a {turn_to_str(self.middle.cards[2].val)} of {self.middle.cards[2].suit}")
             self.round.raise_bet(self.round.current_bet*.5)
     class Turn:
         def __init__(self):
@@ -129,7 +214,7 @@ class Round:#
             new_card = self.deck.deal_card()
             self.middle.add_card(new_card)
             all_cards.append(new_card)
-            print(f"The turn is a {self.middle.cards[0].val} of {self.middle.cards[0].suit}")
+            print(f"The turn is a {turn_to_str(self.middle.cards[0].val)} of {self.middle.cards[0].suit}")
     class River:
         def __init__(self):
             self.hand = Pocket()
@@ -140,14 +225,9 @@ class Round:#
             new_card = self.deck.deal_card()
             self.middle.add_card(new_card)
             all_cards.append(new_card)
-            print(f"The river is a {self.middle.cards[0].val} of {self.middle.cards[0].suit}")
+            print(f"The river is a {turn_to_str(self.middle.cards[0].val)} of {self.middle.cards[0].suit}")
 
-pairs = []
-triples = []
-flushes = []
-straights = []
-straight_flushes = []
-quartets = []
+
 
 def sort_all_cards(arr):
     if not arr:
@@ -167,7 +247,7 @@ def binary_search(start, end, arr, target):
 
 def check_fours(arr):
     index = 0
-    while index <= 3:
+    while index <= len(arr)-2:
         count = 0
         for i in range(index+1, len(arr)):
             if arr[i].val == arr[i-1].val:
@@ -183,7 +263,7 @@ def check_fours(arr):
 
 def check_straight(arr):
     index = 0
-    while index <= 2:
+    while index <= len(arr)-3:
         count = 0
         for i in range(index+1, len(arr)):
             if arr[i-1].val == 1:
@@ -202,7 +282,7 @@ def check_straight(arr):
 
 def check_flush(arr):
     index = 0
-    while index <= 2:
+    while index <= len(arr)-3:
         count = 0
         for i in range(index+1, len(arr)):
             if arr[i].suit == arr[i-1].suit:
@@ -216,12 +296,13 @@ def check_flush(arr):
 
 def check_triple(arr):
     index = 0
-    while index <= 4:
+    while index <= len(arr)-1:
         count = 0
         for i in range(index+1, len(arr)):
             if arr[i].val == arr[i-1].val:
                 count+=1
             else:
+                count = 0
                 break
             if count == 2:
                 if arr[index].val == 1:
@@ -236,13 +317,33 @@ def check_pairs(arr):
         target = arr[i].val
         low = i+1
         high = len(arr)-1
-        if (not binary_search(low, high, arr, target) == 1) and binary_search(low, high, arr, target):
-            pairs.append(binary_search(low, high, arr, target))
+        if (not (target == 1)) and binary_search(low, high, arr, target):
+            if len(pairs) > 0:
+                if pairs[0] == target:
+                    pairs.append(binary_search(low, high, arr, target))
+                    continue
+            else:
+                pairs.append(binary_search(low, high, arr, target))
+                continue
         elif binary_search(low, high, arr, target):
             binary_search(low, high, arr, target).val = 14
-            pairs.append(binary_search(low, high, arr, target))
+            if len(pairs) > 0:
+                if pairs[0] == binary_search(low, high, arr, target):
+                    pairs.append(binary_search(low, high, arr, target))
+                    continue
+            else:
+                pairs.append(binary_search(low, high, arr, target))
+                continue
     return len(pairs)
 
+print(f"You currently have ${total_money}")
+
+pairs = []
+triples = []
+flushes = []
+straights = []
+straight_flushes = []
+quartets = []
 
 round = Round()
 flop = round.Flop()
@@ -250,8 +351,14 @@ turn = round.Turn()
 river = round.River()
 round.deal()
 flop.deal_flop()
+round.calc_strength()
 turn.deal_turn()
+round.calc_strength()
 river.deal_river()
+round.calc_strength()
+# For right now, we cannot check who wins since there is only one player so we assume the player wins.
+total_money += round.current_bet
+# Re-initializing these so that they can be empty to check the hand starting on line 346
 
 sort_all_cards(all_cards)
 four_of_kind = check_fours(all_cards)
@@ -261,25 +368,26 @@ three_of_kind = check_triple(all_cards)
 doubles = check_pairs(all_cards)
 
 if four_of_kind > 0:
-    print(f"The best is a four of a kind of {quartets[four_of_kind-1].val}\'s")
+    print(f"The best is a four of a kind of {turn_to_str(quartets[four_of_kind-1].val)}\'s")
 elif straight > 0:
     for i in range(1, 5):
         straights.append(straights[straight-1]+i)
     straight_flush = check_flush(straights)
     if straight_flush > 0:
-        print(f"The best is a straight flush from {straights[straight-1].val} to {straights[straight+3].val} of the suit {straight_flushes[0].suit}")
+        print(f"The best is a straight flush from {turn_to_str(straights[straight-1].val)} to {turn_to_str(straights[straight+3].val)} of the suit {turn_to_str(straight_flushes[0].suit)}")
         if straights[straight-1] == 10:
-            print(f"Congrats! it\'s a royal flush of the suit {straight_flushes[0].suit}. That is the rarest hand in all of poker!")
+            print(f"Congrats! it\'s a royal flush of the suit {turn_to_str(straight_flushes[0].suit)}. That is the rarest hand in all of poker!")
     else:
-        print(f"The best is a straight from {straights[straight-1].val} to {straights[straight+3].val}")
+        print(f"The best is a straight from {turn_to_str(straights[straight-1].val)} to {turn_to_str(straights[straight+3].val)}")
 elif flush > 0:
-    print(f"You have a flush of the suit {flushes[0].suit}")
+    print(f"You have a flush of the suit {turn_to_str(flushes[0].suit)}")
 elif three_of_kind > 0:
-    print(f"The best is three of a kind of {triples[three_of_kind-1].val}\'s")
-elif doubles > 0 and pairs[0]:
+    print(f"The best is three of a kind of {turn_to_str(triples[three_of_kind-1].val)}\'s")
+elif doubles > 0:
     if doubles > 1:
-        print(f" The best is two-pair of {pairs[doubles-1].val}\'s and {pairs[doubles-2].val}\'s")
+        print(f" The best is two-pair of {turn_to_str(pairs[doubles-1].val)}\'s and {turn_to_str(pairs[doubles-2].val)}\'s")
     else:
-        print(f"The best is a pair of {pairs[doubles-1].val}\'s", end="")
+        print(f"The best is a pair of {turn_to_str(pairs[doubles-1].val)}\'s")
 else:
-    print(f"Your best is a high card: {all_cards[len(all_cards)-1].val}")
+    print(f"Your best is a high card: {turn_to_str(all_cards[len(all_cards)-1].val)}")
+print(f"You now have ${total_money}")
