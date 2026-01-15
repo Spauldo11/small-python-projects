@@ -1,7 +1,9 @@
 import random
 buy_in = 20 # placeholder
-total_money = 4000
+current_bet = buy_in
 num_people = 4
+pot = buy_in*num_people
+final_hands = []
 def turn_to_str(num):
     match num:
         case 14:
@@ -202,7 +204,8 @@ class Deck:
         return self.cards.pop()
     
 class Bot:
-    def __init__(self):
+    def __init__(self, name):
+        self.name = name
         self.hand = Pocket()
         self.all_cards = []
         self.pairs = []
@@ -211,15 +214,17 @@ class Bot:
         self.straights = []
         self.straight_flushes = []
         self.quartets = []
-        self.current_bet = buy_in # To play a round, you must at least bet the buy in
         self.pot = buy_in * num_people
         self.total_money = 4000-buy_in
+        self.final_num = 0
+        self.best = ''
     def raise_bet(self, amount):
+        global current_bet, pot
         if amount > self.total_money:
             amount = self.total_money
-        self.current_bet += amount
+        current_bet += amount
         self.total_money -= amount
-        self.pot += amount
+        pot += amount
     def calc_strength(self):
         sort_all_cards(self.all_cards)
         four_of_kind = check_fours(self.all_cards, self.quartets)
@@ -227,42 +232,45 @@ class Bot:
         flush = check_flush(self.all_cards, self.flushes)
         three_of_kind = check_triple(self.all_cards, self.triples)
         doubles = check_pairs(self.all_cards, self.pairs)
+        self.raise_amount = 0
 
         if four_of_kind > 0:
-            self.raise_bet(self.current_bet*4)
+            self.raise_amount = current_bet*4
         elif straight > 0:
             for i in range(1, 5):
                 self.straights.append(self.straights[straight-1]+i)
             straight_flush = check_flush(self.straights)
             if straight_flush > 0:
-                self.raise_bet(self.current_bet*4)
+                self.raise_bet(current_bet*4)
                 if self.straights[straight-1] == 10:
-                    self.raise_bet(total_money)
+                    self.raise_bet(self.total_money)
             else:
-                self.raise_bet(self.current_bet*3)
+                self.raise_amount = current_bet*3
         elif flush > 0:
-            self.raise_bet(self.current_bet*3)
+            self.raise_amount = current_bet*3
         elif three_of_kind > 0:
-            self.raise_bet(self.current_bet*3)
+            self.raise_amount = current_bet*3
         elif doubles > 0 and doubles>0:
             if doubles > 1:
-                self.raise_bet(self.current_bet*2)
+                self.raise_amount = current_bet*2
             else:
-                self.raise_bet(self.current_bet*0.5)
+                self.raise_amount = current_bet*0.5
         else:
             # Including a random chance at a bluff
             if random.randint(0,101) > 75:
-                self.raise_bet(self.current_bet*0.5)
+                self.raise_amount = current_bet*0.5
+        print(f'{self.name} is raising ${self.raise_amount}')
+        self.raise_bet(self.raise_amount)
     def eval_hand(self):
         strength = self.hand.calc_strength()
-        print(f"Hand is {turn_to_str(self.hand.cards[0].val)} of {self.hand.cards[0].suit} and {turn_to_str(self.hand.cards[1].val)} of {self.hand.cards[1].suit}")
-        print(f"Hand strength is {str(strength)} out of 210")
+        print(f"{self.name}\'s hand is {turn_to_str(self.hand.cards[0].val)} of {self.hand.cards[0].suit} and {turn_to_str(self.hand.cards[1].val)} of {self.hand.cards[1].suit}")
+        # print(f"{self.name}\'s hand strength is {str(strength)} out of 210")
         if strength > 115:
-            self.raise_bet(self.current_bet)
-            print("Raise 2x the buy in")
+            self.raise_bet(current_bet)
+            print(f"{self.name} raises 2x the buy in")
         elif strength > 95:
-            self.raise_bet(self.current_bet*.5)
-            print("Raise 1.5x the buy in")
+            self.raise_bet(current_bet*.5)
+            print(f"{self.name} raises 1.5x the buy in")
     def end_game(self):
         sort_all_cards(self.all_cards)
         four_of_kind = check_fours(self.all_cards, self.quartets)
@@ -272,37 +280,60 @@ class Bot:
         doubles = check_pairs(self.all_cards, self.pairs)
 
         if four_of_kind > 0:
-            print(f"The best is a four of a kind of {turn_to_str(self.quartets[four_of_kind-1].val)}\'s")
-        elif straight > 0:
-            for i in range(1, 5):
-                self.straights.append(self.straights[straight-1]+i)
-            straight_flush = check_flush(self.straights)
-            if straight_flush > 0:
-                print(f"The best is a straight flush from {turn_to_str(self.straights[straight-1].val)} to {turn_to_str(self.straights[straight+3].val)} of the suit {turn_to_str(self.straight_flushes[0].suit)}")
-                if self.straights[straight-1] == 10:
-                    print(f"Congrats! it\'s a royal flush of the suit {turn_to_str(self.straight_flushes[0].suit)}. That is the rarest hand in all of poker!")
-            else:
-                print(f"The best is a straight from {turn_to_str(self.straights[straight-1].val)} to {turn_to_str(self.straights[straight+3].val)}")
+            print(f"The best {self.name} has is a four of a kind of {turn_to_str(self.quartets[four_of_kind-1].val)}\'s")
+            self.final_num = 8
+            self.best = f"four of a kind of {turn_to_str(self.quartets[four_of_kind-1].val)}\'s"
         elif flush > 0:
-            print(f"You have a flush of the suit {turn_to_str(self.flushes[0].suit)}")
+            for i in range(1, 5):
+                self.flushes.append(self.flushes[flush-1]+i)
+            straight_flush = check_straight(self.flushes)
+            if straight_flush > 0:
+                print(f"The best {self.name} has is a straight flush from {turn_to_str(self.straights[straight-1].val)} to {turn_to_str(self.straights[straight+3].val)} of the suit {turn_to_str(self.straight_flushes[0].suit)}")
+                self.final_num = 9
+                self.best = f"straight flush from {turn_to_str(self.straights[straight-1].val)} to {turn_to_str(self.straights[straight+3].val)} of the suit {turn_to_str(self.straight_flushes[0].suit)}"
+                if self.straights[straight-1] == 10:
+                    print(f"Congrats! {self.name} has a royal flush of the suit {turn_to_str(self.straight_flushes[0].suit)}. That is the rarest hand in all of poker!")
+                    self.final_num = 10
+                    self.best = f"royal flush of the suit {turn_to_str(self.straight_flushes[0].suit)}. That is the rarest hand in all of poker!"
+            else:
+                print(f"The best {self.name} has is a flush of the suit {turn_to_str(self.flushes[0].suit)}")
+                self.final_num = 6
+                self.best = f"flush of the suit {turn_to_str(self.flushes[0].suit)}"
+        elif straight > 0:
+            print(f"The best {self.name} has is a straight from {turn_to_str(self.straights[straight-1].val)} to {turn_to_str(self.straights[straight+3].val)}")
+            self.final_num = 5
+            self.best = f"straight from {turn_to_str(self.straights[straight-1].val)} to {turn_to_str(self.straights[straight+3].val)}"
         elif three_of_kind > 0:
-            print(f"The best is three of a kind of {turn_to_str(self.triples[three_of_kind-1].val)}\'s")
+            if doubles > 0:
+                print(f"The best {self.name} has is a full house of {turn_to_str(self.triples[three_of_kind-1].val)} and {turn_to_str(self.pairs[doubles-1].val)}")
+                self.final_num = 7
+                self.best = f"full house of {turn_to_str(self.triples[three_of_kind-1].val)} and {turn_to_str(self.pairs[doubles-1].val)}"
+            print(f"The best {self.name} has is a three of a kind of {turn_to_str(self.triples[three_of_kind-1].val)}\'s")
+            self.final_num = 4
+            self.best = f"three of a kind of {turn_to_str(self.triples[three_of_kind-1].val)}\'s"
         elif doubles > 0:
             if doubles > 1:
-                print(f" The best is two-pair of {turn_to_str(self.pairs[doubles-1].val)}\'s and {turn_to_str(self.pairs[doubles-2].val)}\'s")
+                print(f"The best {self.name} has is a two-pair of {turn_to_str(self.pairs[doubles-1].val)}\'s and {turn_to_str(self.pairs[doubles-2].val)}\'s")
+                self.final_num = 3
+                self.best = f"two-pair of {turn_to_str(self.pairs[doubles-1].val)}\'s and {turn_to_str(self.pairs[doubles-2].val)}\'s"
             else:
-                print(f"The best is a pair of {turn_to_str(self.pairs[doubles-1].val)}\'s")
+                print(f"The best {self.name} has is a pair of {turn_to_str(self.pairs[doubles-1].val)}\'s")
+                self.final_num = 2
+                self.best = f"pair of {turn_to_str(self.pairs[doubles-1].val)}\'s"
         else:
-            print(f"Your best is a high card: {turn_to_str(self.all_cards[len(self.all_cards)-1].val)}")
+            print(f"The best {self.name} has is a high card: {turn_to_str(self.all_cards[len(self.all_cards)-1].val)}")
+            self.final_num = 1
+            self.best = f"high card: {turn_to_str(self.all_cards[len(self.all_cards)-1].val)}"
+        final_hands.append(self)
     
 class Round:
     def __init__(self):
         self.deck = Deck()
         self.middle = Middle()
-        self.bot1 = Bot()
-        self.bot2 = Bot()
-        self.bot3 = Bot()
-        self.bot4 = Bot()
+        self.bot1 = Bot("Bot 1")
+        self.bot2 = Bot("Bot 2")
+        self.bot3 = Bot("Bot 3")
+        self.bot4 = Bot("Bot 4")
     def deal_pockets(self):
         for i in range(2):
             new_card = self.deck.deal_card()
@@ -358,17 +389,21 @@ class Round:
         self.bot2.calc_strength()
         self.bot3.calc_strength()
         self.bot4.calc_strength()
-
+    def calc_final(self):
+        self.final_hands = final_hands
+        self.final_hands.sort(key=lambda bot: bot.final_num)
+        print(f"The winner of this round is {final_hands[-1].name} with a {final_hands[-1].best}")
 
 
 
 
 round = Round()
-round.deal()
+round.deal_pockets()
 round.deal_flop()
-round.calc_strength()
 round.deal_turn()
-round.calc_strength()
 round.deal_river()
-round.calc_strength()
-round.end_game()
+round.bot1.end_game()
+round.bot2.end_game()
+round.bot3.end_game()
+round.bot4.end_game()
+round.calc_final()
