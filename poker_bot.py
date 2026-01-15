@@ -18,7 +18,6 @@ def turn_to_str(num):
             return "Jack"
         case _:
             return num
-# Define all these functions as empty at the start of the program to use before I fully define them
 def sort_all_cards(arr):
     if not arr:
         return arr
