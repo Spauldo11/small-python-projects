@@ -55,7 +55,7 @@ def check_straight(arr, straights, straight_flushes):
     while index <= len(arr)-3:
         count = 0
         for i in range(index+1, len(arr)):
-            if arr[i-1].val == 1:
+            if arr[i-1].val == 1 and not arr[i] == 2:
                 arr[i-1].val = 14
                 sort_all_cards(arr)
                 break
@@ -217,13 +217,15 @@ class Bot:
         self.total_money = 4000-buy_in
         self.final_num = 0
         self.best = ''
-    def raise_bet(self, amount):
+        self.best_num = 0
+    def raise_bet(self, amount, name):
         global current_bet, pot
         if amount > self.total_money:
             amount = self.total_money
         current_bet += amount
         self.total_money -= amount
         pot += amount
+        print(f"{name} is raising ${amount}")
     def calc_strength(self):
         sort_all_cards(self.all_cards)
         four_of_kind = check_fours(self.all_cards, self.quartets)
@@ -237,12 +239,13 @@ class Bot:
             self.raise_amount = current_bet*4
         elif straight > 0:
             for i in range(1, 5):
-                self.straights.append(self.straights[straight-1]+i)
-            straight_flush = check_flush(self.straights)
+                self.straights.append(self.straights[0].val-i)
+                self.straights.reverse()
+            straight_flush = check_flush(self.straights, self.flushes)
             if straight_flush > 0:
-                self.raise_bet(current_bet*4)
+                self.raise_bet(current_bet*4, self.name)
                 if self.straights[straight-1] == 10:
-                    self.raise_bet(self.total_money)
+                    self.raise_bet(self.total_money, self.name)
             else:
                 self.raise_amount = current_bet*3
         elif flush > 0:
@@ -258,18 +261,14 @@ class Bot:
             # Including a random chance at a bluff
             if random.randint(0,101) > 75:
                 self.raise_amount = current_bet*0.5
-        print(f'{self.name} is raising ${self.raise_amount}')
-        self.raise_bet(self.raise_amount)
+        self.raise_bet(self.raise_amount, self. name)
     def eval_hand(self):
         strength = self.hand.calc_strength()
         print(f"{self.name}\'s hand is {turn_to_str(self.hand.cards[0].val)} of {self.hand.cards[0].suit} and {turn_to_str(self.hand.cards[1].val)} of {self.hand.cards[1].suit}")
-        # print(f"{self.name}\'s hand strength is {str(strength)} out of 210")
         if strength > 115:
-            self.raise_bet(current_bet)
-            print(f"{self.name} raises 2x the buy in")
+            self.raise_bet(current_bet, self.name)
         elif strength > 95:
-            self.raise_bet(current_bet*.5)
-            print(f"{self.name} raises 1.5x the buy in")
+            self.raise_bet(current_bet*.5, self.name)
     def end_game(self):
         sort_all_cards(self.all_cards)
         four_of_kind = check_fours(self.all_cards, self.quartets)
@@ -282,47 +281,57 @@ class Bot:
             print(f"The best {self.name} has is a four of a kind of {turn_to_str(self.quartets[four_of_kind-1].val)}\'s")
             self.final_num = 8
             self.best = f"four of a kind of {turn_to_str(self.quartets[four_of_kind-1].val)}\'s"
+            self.best_num = self.quartets[four_of_kind-1].val
         elif flush > 0:
-            for i in range(1, 5):
-                self.flushes.append(self.flushes[flush-1]+i)
-            straight_flush = check_straight(self.flushes)
+            straight_flush = check_straight(self.flushes, self.straights, self.straight_flushes)
             if straight_flush > 0:
                 print(f"The best {self.name} has is a straight flush from {turn_to_str(self.straights[straight-1].val)} to {turn_to_str(self.straights[straight+3].val)} of the suit {turn_to_str(self.straight_flushes[0].suit)}")
                 self.final_num = 9
                 self.best = f"straight flush from {turn_to_str(self.straights[straight-1].val)} to {turn_to_str(self.straights[straight+3].val)} of the suit {turn_to_str(self.straight_flushes[0].suit)}"
+                self.best_num = self.straights[straight+3].val
                 if self.straights[straight-1] == 10:
                     print(f"Congrats! {self.name} has a royal flush of the suit {turn_to_str(self.straight_flushes[0].suit)}. That is the rarest hand in all of poker!")
                     self.final_num = 10
                     self.best = f"royal flush of the suit {turn_to_str(self.straight_flushes[0].suit)}. That is the rarest hand in all of poker!"
+                    # For a royal flush, the number is always the same. Therefore, best num doesn't need to be reset
             else:
                 print(f"The best {self.name} has is a flush of the suit {turn_to_str(self.flushes[0].suit)}")
                 self.final_num = 6
                 self.best = f"flush of the suit {turn_to_str(self.flushes[0].suit)}"
+                # Specifics of the flush don't matter, unlike other hands where the greater number wins
         elif straight > 0:
             print(f"The best {self.name} has is a straight from {turn_to_str(self.straights[straight-1].val)} to {turn_to_str(self.straights[straight+3].val)}")
             self.final_num = 5
             self.best = f"straight from {turn_to_str(self.straights[straight-1].val)} to {turn_to_str(self.straights[straight+3].val)}"
+            self.best_num = self.straights[straight+3].val
         elif three_of_kind > 0:
-            if doubles > 0:
-                print(f"The best {self.name} has is a full house of {turn_to_str(self.triples[three_of_kind-1].val)} and {turn_to_str(self.pairs[doubles-1].val)}")
+            if doubles > 0 and not self.triples[three_of_kind-1].val == self.pairs[doubles-1].val:
+                print(f"The best {self.name} has is a full house of {turn_to_str(self.triples[three_of_kind-1].val)}\'s and {turn_to_str(self.pairs[doubles-1].val)}\'s")
                 self.final_num = 7
-                self.best = f"full house of {turn_to_str(self.triples[three_of_kind-1].val)} and {turn_to_str(self.pairs[doubles-1].val)}"
-            print(f"The best {self.name} has is a three of a kind of {turn_to_str(self.triples[three_of_kind-1].val)}\'s")
-            self.final_num = 4
-            self.best = f"three of a kind of {turn_to_str(self.triples[three_of_kind-1].val)}\'s"
+                self.best = f"full house of {turn_to_str(self.triples[three_of_kind-1].val)}\'s and {turn_to_str(self.pairs[doubles-1].val)}\'s"
+                self.best_num = [self.triples[three_of_kind-1].val, self.pairs[doubles-1].val]
+                self.best_num.sort()
+            else: 
+                print(f"The best {self.name} has is a three of a kind of {turn_to_str(self.triples[three_of_kind-1].val)}\'s")
+                self.final_num = 4
+                self.best = f"three of a kind of {turn_to_str(self.triples[three_of_kind-1].val)}\'s"
+                self.best_num = self.triples[three_of_kind-1].val
         elif doubles > 0:
             if doubles > 1:
                 print(f"The best {self.name} has is a two-pair of {turn_to_str(self.pairs[doubles-1].val)}\'s and {turn_to_str(self.pairs[doubles-2].val)}\'s")
                 self.final_num = 3
                 self.best = f"two-pair of {turn_to_str(self.pairs[doubles-1].val)}\'s and {turn_to_str(self.pairs[doubles-2].val)}\'s"
+                self.best_num = [self.pairs[doubles-1].val, self.pairs[doubles-2].val].sort()
             else:
                 print(f"The best {self.name} has is a pair of {turn_to_str(self.pairs[doubles-1].val)}\'s")
                 self.final_num = 2
                 self.best = f"pair of {turn_to_str(self.pairs[doubles-1].val)}\'s"
+                self.best_num = self.pairs[doubles-1].val
         else:
             print(f"The best {self.name} has is a high card: {turn_to_str(self.all_cards[len(self.all_cards)-1].val)}")
             self.final_num = 1
-            self.best = f"high card: {turn_to_str(self.all_cards[len(self.all_cards)-1].val)}"
+            self.best = f"high card: {turn_to_str(self.all_cards[-1].val)}"
+            self.best_num = self.all_cards[-1].val
         final_hands.append(self)
     
 class Round:
@@ -389,9 +398,27 @@ class Round:
         self.bot3.calc_strength()
         self.bot4.calc_strength()
     def calc_final(self):
+        winners = []
+        final_winners = []
         self.final_hands = final_hands
         self.final_hands.sort(key=lambda bot: bot.final_num)
-        print(f"The winner of this round is {final_hands[-1].name} with a {final_hands[-1].best}")
+        # Check for ties
+        for i in range(len(self.final_hands)-1):
+            if self.final_hands[i].final_num == self.final_hands[-1].final_num:
+                winners.append(self.final_hands[i])
+        if len(winners) == 0:
+            print(f"The winner of this round is {self.final_hands[-1].name} with a {self.final_hands[-1].best}")
+            return
+        else:
+            winners.append(self.final_hands[-1])
+        winners.sort(key=lambda bot: bot.best_num)
+        for winner in winners:
+                print(winner.name, winner.best_num)
+                if winner.best_num == winners[-1].best_num:
+                    final_winners.append(winner)
+        print("The winners are: ")
+        for winner in final_winners:
+            print(f"{winner.name} with a {winner.best}")
 
 
 
