@@ -259,7 +259,6 @@ while running:
             ding.play()
             spin(0)
             display()
-        end_sound.play()
         spin(bet_amount)
     if pygame.key.get_pressed()[pygame.K_UP]:
         if bet_amount < balance:

@@ -2,7 +2,9 @@ import random
 buy_in = 20 # placeholder
 current_bet = buy_in
 num_people = 4
+is_raise = False
 pot = buy_in*num_people
+round_bets = []
 final_hands = []
 def turn_to_str(num):
     match num:
@@ -218,14 +220,26 @@ class Bot:
         self.final_num = 0
         self.best = ''
         self.best_num = 0
+        self.folded = False
+        self.total_money_in = buy_in
     def raise_bet(self, amount, name):
-        global current_bet, pot
+        global current_bet, pot, is_raise, round_bets
         if amount > self.total_money:
             amount = self.total_money
-        current_bet += amount
+        round_bets.append(amount)
+        round_bets.sort()
+        current_bet = round_bets[-1]
         self.total_money -= amount
+        self.total_money_in += amount
         pot += amount
-        print(f"{name} is raising ${amount}")
+        if amount > 0:
+            print(f"{name} is raising ${amount}")
+            is_raise = True
+        elif is_raise == False:
+            print(f"{name} is checking")
+        else:
+            print(f"{name} is folding")
+            self.folded = True
     def calc_strength(self):
         sort_all_cards(self.all_cards)
         four_of_kind = check_fours(self.all_cards, self.quartets)
@@ -252,14 +266,14 @@ class Bot:
             self.raise_amount = current_bet*3
         elif three_of_kind > 0:
             self.raise_amount = current_bet*3
-        elif doubles > 0 and doubles>0:
+        elif doubles > 0:
             if doubles > 1:
                 self.raise_amount = current_bet*2
             else:
                 self.raise_amount = current_bet*0.5
         else:
             # Including a random chance at a bluff
-            if random.randint(0,101) > 75:
+            if random.randint(0,101) >= 75:
                 self.raise_amount = current_bet*0.5
         self.raise_bet(self.raise_amount, self. name)
     def eval_hand(self):
@@ -338,10 +352,24 @@ class Round:
     def __init__(self):
         self.deck = Deck()
         self.middle = Middle()
+        self.stage = "preflop"
         self.bot1 = Bot("Bot 1")
         self.bot2 = Bot("Bot 2")
         self.bot3 = Bot("Bot 3")
         self.bot4 = Bot("Bot 4")
+    def display_bet_info(self):
+        global current_bet, pot
+        print(f"The current bet is at {current_bet} and the pot is at {pot}")
+        print(f"Bot1 is in ${self.bot1.total_money_in}")
+        print(f"Bot2 is in ${self.bot2.total_money_in}")
+        print(f"Bot3 is in ${self.bot3.total_money_in}")
+        print(f"Bot4 is in ${self.bot4.total_money_in}")
+    def change_stage(self, stage):
+        global is_raise, round_bets
+        self.stage = stage
+        is_raise = False
+        round_bets = []
+        self.display_bet_info()
     def deal_pockets(self):
         for i in range(2):
             new_card = self.deck.deal_card()
@@ -426,8 +454,11 @@ class Round:
 round = Round()
 round.deal_pockets()
 round.deal_flop()
+round.change_stage('flop')
 round.deal_turn()
+round.change_stage('turn')
 round.deal_river()
+round.change_stage('river')
 round.bot1.end_game()
 round.bot2.end_game()
 round.bot3.end_game()
