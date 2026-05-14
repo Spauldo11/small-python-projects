@@ -17,6 +17,8 @@ def calcdistance(x1, y1, x2, y2):
 heimler_img = cv2.imread('heimler_1.jpg')
 
 while True:
+    pointing = False
+    direction = "N/A"
     success, img = cap.read()
     img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     result = hands.process(img_rgb)
@@ -53,10 +55,29 @@ while True:
             determine_longer(calcdistance(finger_tips[0][0][1], finger_tips[0][0][2], pinky_base[1], pinky_base[2]), calcdistance(pip_joints[0][0][1], pip_joints[0][0][2], pinky_base[1], pinky_base[2]))
             for i in range(4):
                 determine_longer(calcdistance(finger_tips[0][i+1][1], finger_tips[0][i+1][2], wrist_base[1], wrist_base[2]), calcdistance(pip_joints[0][i+1][1], pip_joints[0][i+1][2], wrist_base[1], wrist_base[2]))
-
+            
+            if len(up_fingers) == 1:
+                if calcdistance(finger_tips[0][1][1], finger_tips[0][1][2], wrist_base[1], wrist_base[2]) > calcdistance(pip_joints[0][1][1], pip_joints[0][1][2], wrist_base[1], wrist_base[2]):
+                    pointing = True
+                    tip_x, tip_y = int(finger_tips[0][1][1]), int(finger_tips[0][1][2])
+                    pip_x, pip_y = int(pip_joints[0][1][1]), int(pip_joints[0][1][2])
+                    if tip_x>pip_x and abs(tip_y-pip_y) < 50:
+                        direction = "L"
+                    elif tip_x<pip_x and abs(tip_y-pip_y) < 50:
+                        direction = "R"
+                    elif tip_y<pip_y and abs(tip_x-pip_x) < 50:
+                        direction = "U"
+                    elif tip_y>pip_y and abs(tip_x-pip_x) < 50:
+                        direction = "D"
+                    else:
+                        direction = "N/A"
+            
             # print out and display num of fingers extended
             print(len(up_fingers))
             cv2.putText(img, str(len(up_fingers)), (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 1)
+            if pointing:
+                cv2.putText(img, "P", (100, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 1)
+                cv2.putText(img, direction, (130, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 1)
             
             # display image based on how many fingers are up
             cv2.imshow('Heimler\'s Reaction', heimler_img)
@@ -80,10 +101,13 @@ while True:
                     break
 
             cv2.imshow('Heimler\'s Reaction', heimler_img)
-            # print out landmark metrics
+
+            # print out landmark metrics (not necessary at the moment)
+            """
             print(f"Hand {hand_index+1} landmarks:")
             for i in range(len(landmarks)):
                 print(f"{i+1} {landmarks[i][1]}, {landmarks[i][2]}")
+            """
 
             # example: read a specific landmark (INDEX_FINGER_TIP)
             tip = handLms.landmark[mp_hands.HandLandmark.INDEX_FINGER_TIP]
