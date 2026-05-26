@@ -2,6 +2,12 @@ import cv2
 import mediapipe as mp
 import pygame as pg
 import math
+"""
+This program uses pygame and openCV hand tracking software to create an archery style game
+To play the game, simply point in the direction where you want to move the reticle (your aim)
+When you are ready, close your fist into a ball. You should see a black dot
+NOTE: Pointing down doesn't work great because of the thumb. This is a WIP.
+"""
 
 running = True
 shot = False
