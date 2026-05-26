@@ -1,7 +1,29 @@
 import cv2
 import mediapipe as mp
+import pygame as pg
 import math
-import time
+
+running = True
+shot = False
+reticle_x = 560
+reticle_y = 560
+
+def display(shot, reticle_x, reticle_y):
+    target = pg.image.load('pxl_target.png')
+    reticle = pg.image.load('pxl_reticle.png')
+    hole = pg.image.load('pxl_hole.png')
+    target = target.convert_alpha()
+    reticle = reticle.convert_alpha()
+    hole = hole.convert_alpha()
+    screen.fill(white)
+    screen.blit(target, (0, 0))
+    screen.blit(reticle, (reticle_x, reticle_y))
+    if shot == True:
+        screen.blit(hole, (reticle_x, reticle_y))
+    pg.display.flip()
+
+screen = pg.display.set_mode((1120, 1120))
+white = 255, 255, 255
 
 mp_hands = mp.solutions.hands
 hands = mp_hands.Hands()
@@ -16,8 +38,9 @@ def calcdistance(x1, y1, x2, y2):
 
 heimler_img = cv2.imread('heimler_1.jpg')
 
-while True:
+while running:
     pointing = False
+    shot = False
     direction = "N/A"
     success, img = cap.read()
     img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
@@ -63,14 +86,20 @@ while True:
                     pip_x, pip_y = int(pip_joints[0][1][1]), int(pip_joints[0][1][2])
                     if tip_x>pip_x and abs(tip_y-pip_y) < 50:
                         direction = "L"
+                        reticle_x -= 1
                     elif tip_x<pip_x and abs(tip_y-pip_y) < 50:
                         direction = "R"
+                        reticle_x += 1
                     elif tip_y<pip_y and abs(tip_x-pip_x) < 50:
                         direction = "U"
+                        reticle_y -= 1
                     elif tip_y>pip_y and abs(tip_x-pip_x) < 50:
                         direction = "D"
+                        reticle_y += 1
                     else:
                         direction = "N/A"
+            if len(up_fingers) == 0:
+                shot = True
             
             # print out and display num of fingers extended
             print(len(up_fingers))
@@ -78,7 +107,7 @@ while True:
             if pointing:
                 cv2.putText(img, "P", (100, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 1)
                 cv2.putText(img, direction, (130, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 1)
-            
+            """
             # display image based on how many fingers are up
             cv2.imshow('Heimler\'s Reaction', heimler_img)
             match len(up_fingers):
@@ -101,6 +130,7 @@ while True:
                     break
 
             cv2.imshow('Heimler\'s Reaction', heimler_img)
+            """
 
             # print out landmark metrics (not necessary at the moment)
             """
@@ -116,9 +146,16 @@ while True:
     else:
         print("No Hand")
 
+    for event in pg.event.get():
+        if event.type == pg.QUIT:
+            running = False
+    display(shot, reticle_x, reticle_y)
+    
     cv2.imshow("Hand Tracker", img)
+    """
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
+    """
 
 cap.release()
 cv2.destroyAllWindows()
